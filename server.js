@@ -1,6 +1,5 @@
 /* 牌神擂台 伺服器 ｜ 遊戲製作：Eric Hu
-   第 1 階段：網頁、帳號登入、成績保存、排行榜。
-   真人連線、文字聊天、即時語音會在後續階段加入。 */
+   網頁、帳號登入、成績保存、排行榜、真人連線房間、文字聊天、語音信令。 */
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
@@ -81,6 +80,7 @@ app.post('/api/save', async (req, res) => {
     const chips = Math.max(0, Math.min(1e9, Math.round(Number(req.body.chips) || 0)));
     u.chips = chips < 10 ? 1000 : chips; // 虛擬籌碼用完免費補發
     if (req.body.stats && typeof req.body.stats === 'object') u.stats = req.body.stats;
+    if (Number.isInteger(req.body.level)) u.level = Math.max(0, Math.min(7, req.body.level));
     await putUser(u);
     res.json({ ok: true });
   } catch (e) { console.error(e); bad(res, '伺服器錯誤', 500); }
@@ -97,5 +97,101 @@ app.get('/api/leaderboard', async (req, res) => {
 });
 app.get('/healthz', (req, res) => res.send('ok'));
 
+/* ================= 真人連線：房間、遊戲同步、聊天、語音信令 ================= */
+const http = require('http');
+const { WebSocketServer } = require('ws');
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server, path: '/ws' });
+const rooms = new Map();
+const AI_NAMES = ['阿福', '小美', '老王', '阿珠', '大雄', '春嬌', '志明', '阿嬤', '小胖', '阿德'];
+const AI_AV = ['🐵', '🐱', '🐶', '🐼', '🦊', '🐯', '🐸', '🐷'];
+const TEAM = new Set(['spades', 'bridge']);
+const send = (ws, m) => { try { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); } catch (e) {} };
+const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const roomInfo = (r) => ({ code: r.code, game: r.game, mode: r.mode, diff: r.diff, size: r.size, host: r.host, started: r.started, members: r.members.map((m) => ({ name: m.name, level: m.level })) });
+const listFor = (game) => [...rooms.values()].filter((r) => r.game === game && !r.started).map(roomInfo);
+const pushList = (game) => wss.clients.forEach((c) => { if (c.lobbyGame === game && !c.room) send(c, { t: 'rooms', list: listFor(game) }); });
+const toRoom = (r, m, except) => r.members.forEach((x) => { if (x.ws !== except) send(x.ws, m); });
+
+function leaveRoom(ws) {
+  const r = ws.room; if (!r) return;
+  ws.room = null;
+  const i = r.members.findIndex((m) => m.ws === ws);
+  if (i < 0) return;
+  if (!r.started) {
+    r.members.splice(i, 1);
+    if (!r.members.length) rooms.delete(r.code);
+    else { if (r.host === ws.name) r.host = r.members[0].name; toRoom(r, { t: 'room', room: roomInfo(r) }); }
+  } else {
+    const m = r.members[i]; m.ws = null; m.gone = true;
+    toRoom(r, { t: 'gone', seat: m.seat, name: m.name });
+    if (r.members.every((x) => x.gone)) rooms.delete(r.code);
+  }
+  pushList(r.game);
+}
+
+wss.on('connection', (ws) => {
+  ws.alive = true;
+  ws.on('pong', () => (ws.alive = true));
+  ws.on('message', async (raw) => {
+    let m; try { m = JSON.parse(raw); } catch (e) { return; }
+    try {
+      if (m.t === 'hello') {
+        const u = await getUser(String(m.name || ''));
+        if (!u || !u.token || u.token !== m.token) return send(ws, { t: 'error', msg: '請重新登入' });
+        ws.name = u.name; ws.level = u.level || 0;
+        return send(ws, { t: 'welcome' });
+      }
+      if (!ws.name) return send(ws, { t: 'error', msg: '請先登入' });
+      const r = ws.room;
+      switch (m.t) {
+        case 'list': ws.lobbyGame = String(m.game); send(ws, { t: 'rooms', list: listFor(ws.lobbyGame) }); break;
+        case 'create': {
+          leaveRoom(ws);
+          let code; do { code = String(Math.floor(1000 + Math.random() * 9000)); } while (rooms.has(code));
+          const nr = { code, game: String(m.game), mode: m.mode === 'classic' ? 'classic' : 'party', diff: Math.max(0, Math.min(2, m.diff | 0)), size: Math.max(1, Math.min(6, m.size | 0)), host: ws.name, started: false, members: [{ name: ws.name, level: ws.level, ws }] };
+          rooms.set(code, nr); ws.room = nr;
+          send(ws, { t: 'room', room: roomInfo(nr) }); pushList(nr.game); break;
+        }
+        case 'join': {
+          const jr = rooms.get(String(m.code));
+          if (!jr) return send(ws, { t: 'error', msg: '找不到這個房間' });
+          if (jr.started) return send(ws, { t: 'error', msg: '這個房間已經開始遊戲了' });
+          if (jr.members.length >= jr.size) return send(ws, { t: 'error', msg: '房間已經滿了' });
+          if (jr.members.some((x) => x.name === ws.name)) return send(ws, { t: 'error', msg: '你已經在這個房間裡' });
+          leaveRoom(ws);
+          jr.members.push({ name: ws.name, level: ws.level, ws }); ws.room = jr;
+          toRoom(jr, { t: 'room', room: roomInfo(jr) }); pushList(jr.game); break;
+        }
+        case 'leave': leaveRoom(ws); send(ws, { t: 'left' }); break;
+        case 'start': {
+          if (!r || r.started || r.host !== ws.name) return;
+          const n = r.size, hs = r.members.length;
+          const order = TEAM.has(r.game) && n === 4 ? (hs === 2 ? [0, 2] : hs === 3 ? [0, 1, 2] : [0, 1, 2, 3]) : r.members.map((_, i) => i);
+          const players = Array(n).fill(null);
+          r.members.forEach((x, i) => { x.seat = order[i]; players[order[i]] = { name: x.name, level: x.level }; });
+          const names = shuffle(AI_NAMES.filter((x) => !r.members.some((y) => y.name === x))), avs = shuffle(AI_AV.slice());
+          let k = 0; for (let i = 0; i < n; i++) if (!players[i]) { players[i] = { name: names[k], ai: true, avatar: avs[k], level: Math.floor(Math.random() * 4) }; k++; }
+          r.started = true; r.seed = Math.floor(Math.random() * 4294967295);
+          r.members.forEach((x) => send(x.ws, { t: 'start', seed: r.seed, players, mySeat: x.seat, game: r.game, mode: r.mode, diff: r.diff }));
+          pushList(r.game); break;
+        }
+        case 'act': { if (!r || !r.started) return; const me = r.members.find((x) => x.ws === ws); if (!me || me.seat !== m.seat) return; toRoom(r, { t: 'act', seat: m.seat, r: m.r }, ws); break; }
+        case 'chat': { if (!r) return; const me = r.members.find((x) => x.ws === ws); toRoom(r, { t: 'chat', name: ws.name, seat: me && me.seat, text: String(m.text || '').slice(0, 60) }, ws); break; }
+        case 'emoji': case 'sum': case 'x': { if (!r) return; const me = r.members.find((x) => x.ws === ws); toRoom(r, Object.assign({}, m, { seat: me && me.seat, name: ws.name }), ws); break; }
+        case 'rtc': { if (!r) return; const to = r.members.find((x) => x.name === m.to); if (to) send(to.ws, { t: 'rtc', from: ws.name, data: m.data }); break; }
+        case 'voice': {
+          if (!r) return; const me = r.members.find((x) => x.ws === ws); if (me) me.voice = !!m.on;
+          toRoom(r, { t: 'voice', name: ws.name, on: !!m.on }, ws);
+          if (m.on) r.members.forEach((x) => { if (x.ws !== ws && x.voice && !x.gone) send(ws, { t: 'voice', name: x.name, on: true }); });
+          break;
+        }
+      }
+    } catch (e) { console.error(e); }
+  });
+  ws.on('close', () => leaveRoom(ws));
+});
+setInterval(() => wss.clients.forEach((ws) => { if (!ws.alive) return ws.terminate(); ws.alive = false; try { ws.ping(); } catch (e) {} }), 25000);
+
 const PORT = process.env.PORT || 3000;
-init().then(() => app.listen(PORT, () => console.log('牌神擂台 伺服器啟動：' + PORT))).catch((e) => { console.error(e); process.exit(1); });
+init().then(() => server.listen(PORT, () => console.log('牌神擂台 伺服器啟動：' + PORT))).catch((e) => { console.error(e); process.exit(1); });

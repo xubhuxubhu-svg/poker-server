@@ -39,15 +39,15 @@
   /* 煙火 */
   fx.firework = function (x, y, colors, n) {
     colors = colors || COLORS; n = n || 60;
-    for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2, s = PK.rand(2, 6); add({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, g: 0.06, drag: 0.97, size: PK.rand(1.5, 3), color: PK.pick(colors), glow: 10, life: PK.randInt(50, 80), fade: 30 }); }
+    for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2, s = PK.crand(2, 6); add({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, g: 0.06, drag: 0.97, size: PK.crand(1.5, 3), color: PK.cpick(colors), glow: 10, life: PK.cint(50, 80), fade: 30 }); }
   };
   fx.fireworks = async function (count) {
     PK.sfx('big');
-    for (let i = 0; i < (count || 5); i++) { fx.firework(PK.rand(innerWidth * 0.15, innerWidth * 0.85), PK.rand(innerHeight * 0.15, innerHeight * 0.5)); await PK.sleep(220); }
+    for (let i = 0; i < (count || 5); i++) { fx.firework(PK.crand(innerWidth * 0.15, innerWidth * 0.85), PK.crand(innerHeight * 0.15, innerHeight * 0.5)); await PK.sleep(220); }
   };
   /* 彩帶 */
   fx.confetti = function (n) {
-    for (let i = 0; i < (n || 120); i++) add({ x: PK.rand(0, innerWidth), y: PK.rand(-80, -10), vx: PK.rand(-1.5, 1.5), vy: PK.rand(1, 4), g: 0.04, drag: 0.99, shape: 'rect', size: PK.rand(6, 11), vr: PK.rand(-0.2, 0.2), color: PK.pick(COLORS), life: PK.randInt(120, 200), fade: 40 });
+    for (let i = 0; i < (n || 120); i++) add({ x: PK.crand(0, innerWidth), y: PK.crand(-80, -10), vx: PK.crand(-1.5, 1.5), vy: PK.crand(1, 4), g: 0.04, drag: 0.99, shape: 'rect', size: PK.crand(6, 11), vr: PK.crand(-0.2, 0.2), color: PK.cpick(COLORS), life: PK.cint(120, 200), fade: 40 });
   };
   /* 金幣噴發：從某元素噴到另一元素 */
   fx.coins = function (fromEl, toEl, n) {
@@ -55,24 +55,24 @@
     PK.sfx('chip');
     for (let i = 0; i < (n || 18); i++) {
       setTimeout(() => {
-        if (b) { const t = PK.randInt(35, 50); add({ emoji: '🪙', size: 22, x: a.x + PK.rand(-20, 20), y: a.y + PK.rand(-10, 10), vx: (b.x - a.x) / t, vy: (b.y - a.y) / t - 4, g: 8 / t, drag: 1, life: t, fade: 6, vr: 0.2 }); }
-        else add({ emoji: '🪙', size: 22, x: a.x, y: a.y, vx: PK.rand(-5, 5), vy: PK.rand(-9, -4), g: 0.35, life: 70, fade: 20, vr: 0.2 });
+        if (b) { const t = PK.cint(35, 50); add({ emoji: '🪙', size: 22, x: a.x + PK.crand(-20, 20), y: a.y + PK.crand(-10, 10), vx: (b.x - a.x) / t, vy: (b.y - a.y) / t - 4, g: 8 / t, drag: 1, life: t, fade: 6, vr: 0.2 }); }
+        else add({ emoji: '🪙', size: 22, x: a.x, y: a.y, vx: PK.crand(-5, 5), vy: PK.crand(-9, -4), g: 0.35, life: 70, fade: 20, vr: 0.2 });
       }, i * 35);
     }
   };
   /* 表情爆裂（茶杯碎、愛心飛、炸彈爆等） */
   fx.burst = function (el, emoji, n, opt) {
     const c = center(el); opt = opt || {};
-    for (let i = 0; i < (n || 14); i++) { const a = PK.rand(0, Math.PI * 2), s = PK.rand(2, opt.speed || 7); add({ emoji: Array.isArray(emoji) ? PK.pick(emoji) : emoji, size: PK.rand(16, opt.size || 30), x: c.x, y: c.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - (opt.up || 2), g: opt.g == null ? 0.2 : opt.g, life: PK.randInt(40, 70), fade: 20, vr: PK.rand(-0.2, 0.2) }); }
+    for (let i = 0; i < (n || 14); i++) { const a = PK.crand(0, Math.PI * 2), s = PK.crand(2, opt.speed || 7); add({ emoji: Array.isArray(emoji) ? PK.cpick(emoji) : emoji, size: PK.crand(16, opt.size || 30), x: c.x, y: c.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - (opt.up || 2), g: opt.g == null ? 0.2 : opt.g, life: PK.cint(40, 70), fade: 20, vr: PK.crand(-0.2, 0.2) }); }
   };
   fx.sparkle = function (el, color, n) {
     const r = el.getBoundingClientRect();
-    for (let i = 0; i < (n || 24); i++) add({ x: PK.rand(r.left, r.right), y: PK.rand(r.top, r.bottom), vx: PK.rand(-0.5, 0.5), vy: PK.rand(-2, -0.5), size: PK.rand(1.5, 3), color: color || '#ffe680', glow: 12, life: PK.randInt(30, 60), fade: 20 });
+    for (let i = 0; i < (n || 24); i++) add({ x: PK.crand(r.left, r.right), y: PK.crand(r.top, r.bottom), vx: PK.crand(-0.5, 0.5), vy: PK.crand(-2, -0.5), size: PK.crand(1.5, 3), color: color || '#ffe680', glow: 12, life: PK.cint(30, 60), fade: 20 });
   };
   /* 震動 */
   fx.shake = function (el, power) {
     el = el || document.body; power = power || 8;
-    el.animate([0, 1, 2, 3, 4, 5, 6].map((i) => ({ transform: i === 6 ? 'none' : `translate(${PK.rand(-power, power)}px,${PK.rand(-power, power)}px)` })), { duration: 380 });
+    el.animate([0, 1, 2, 3, 4, 5, 6].map((i) => ({ transform: i === 6 ? 'none' : `translate(${PK.crand(-power, power)}px,${PK.crand(-power, power)}px)` })), { duration: 380 });
   };
   /* 全螢幕閃光 */
   fx.flash = function (color, ms) {
@@ -82,6 +82,7 @@
   };
   /* 大字標語 */
   fx.banner = function (text, style, sub) {
+    if (PK.voice) PK.voice.say(text, { pri: 2 });
     const b = PK.el('div', { class: 'fx-banner ' + (style || '') }, PK.el('div', { class: 'fx-banner-main' }, text), sub ? PK.el('div', { class: 'fx-banner-sub' }, sub) : null);
     document.body.append(b);
     setTimeout(() => b.classList.add('out'), 1500);
@@ -91,7 +92,7 @@
   fx.lightning = function (el) {
     const c = center(el); PK.sfx('boom'); fx.flash('#e0f0ff', 300);
     let x = c.x, y = 0;
-    const seg = []; while (y < c.y) { const nx = x + PK.rand(-30, 30), ny = y + PK.rand(20, 45); seg.push([x, y, nx, ny]); x = nx; y = ny; }
+    const seg = []; while (y < c.y) { const nx = x + PK.crand(-30, 30), ny = y + PK.crand(20, 45); seg.push([x, y, nx, ny]); x = nx; y = ny; }
     const s = PK.el('div', { class: 'fx-svg' });
     s.innerHTML = `<svg width="100%" height="100%"><polyline points="${seg.map((p) => p[0] + ',' + p[1]).join(' ')} ${c.x},${c.y}" fill="none" stroke="#fff" stroke-width="4" style="filter:drop-shadow(0 0 8px #8cf)"/></svg>`;
     document.body.append(s); setTimeout(() => s.remove(), 260);

@@ -10,6 +10,12 @@ def inline(m):
 html = re.sub(r'<script src="([^"]+)"></script>', inline, html)
 html = html.replace('<div id="app"></div>', '<div id="app"></div>\n<script>window.PK_OFFLINE=true;</script>')
 html = html.replace('<title>牌神擂台</title>', '<title>牌神擂台（單機試玩版）</title>')
+import base64
+bgm = {}
+for f in sorted(root.glob('bgm*.mp3')):
+    bgm[f.name] = 'data:audio/mpeg;base64,' + base64.b64encode(f.read_bytes()).decode()
+import json
+html = html.replace('<script>window.PK_OFFLINE=true;</script>', '<script>window.PK_OFFLINE=true;window.PK_BGM_DATA=' + json.dumps(bgm) + ';</script>')
 out = pathlib.Path(__file__).parent.parent / '牌神擂台_單機試玩版.html'
 out.write_text(html, encoding='utf-8')
 print('完成：', out, len(html), 'bytes')

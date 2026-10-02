@@ -22,6 +22,14 @@
     return e;
   };
   PK.sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  /* 亂數：遊戲邏輯用 Math.random（連線時會換成大家相同的「同步亂數」）；畫面特效用 PK.nrand（各自的亂數） */
+  PK.nrand = Math.random.bind(Math);
+  PK.crand = (a, b) => a + PK.nrand() * (b - a);
+  PK.cint = (a, b) => Math.floor(PK.crand(a, b + 1));
+  PK.cpick = (arr) => arr[Math.floor(PK.nrand() * arr.length)];
+  PK.seeded = function (seed) { let a = seed >>> 0; return function () { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  PK.useSeed = (seed) => { Math.random = PK.seeded(seed); };
+  PK.unseed = () => { Math.random = PK.nrand; };
   PK.rand = (a, b) => a + Math.random() * (b - a);
   PK.randInt = (a, b) => Math.floor(PK.rand(a, b + 1));
   PK.pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -121,14 +129,22 @@
   PK.SUITS = { S: '♠', H: '♥', D: '♦', C: '♣' };
   PK.SUIT_NAME = { S: '黑桃', H: '紅心', D: '方塊', C: '梅花' };
   PK.RANK_TXT = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+  /* 每副牌都有不重複的編號，連線時用編號傳送是哪一張牌 */
+  PK.CARDS = new Map(); PK.deckGen = 0;
+  PK.regCard = (c) => { PK.CARDS.set(c.id, c); return c; };
   PK.makeDeck = function (opt) {
     opt = opt || {}; const d = []; const n = opt.decks || 1;
+    const g = opt.temp ? 't' : ++PK.deckGen;
     for (let k = 0; k < n; k++) {
-      for (const s of 'SHDC') for (let r = 1; r <= 13; r++) d.push({ r, s, id: k + s + r });
-      if (opt.jokers) { d.push({ r: 0, s: 'J', id: k + 'JK1', joker: 'big' }); d.push({ r: 0, s: 'J', id: k + 'JK2', joker: 'small' }); }
+      for (const s of 'SHDC') for (let r = 1; r <= 13; r++) d.push({ r, s, id: g + ':' + k + s + r });
+      if (opt.jokers) { d.push({ r: 0, s: 'J', id: g + ':' + k + 'JK1', joker: 'big' }); d.push({ r: 0, s: 'J', id: g + ':' + k + 'JK2', joker: 'small' }); }
     }
+    if (!opt.temp) d.forEach(PK.regCard);
     return PK.shuffle(d);
   };
+  /* 連線傳送：把牌換成編號、收到時換回牌 */
+  PK.pack = (v) => { if (v == null || typeof v !== 'object') return v; if (v.id && v.s && v.r != null) return { $c: v.id }; if (Array.isArray(v)) return v.map(PK.pack); const o = {}; for (const k in v) o[k] = PK.pack(v[k]); return o; };
+  PK.unpack = (v) => { if (v == null || typeof v !== 'object') return v; if (v.$c) return PK.CARDS.get(v.$c) || v; if (Array.isArray(v)) return v.map(PK.unpack); const o = {}; for (const k in v) o[k] = PK.unpack(v[k]); return o; };
   PK.isRed = (c) => c.s === 'H' || c.s === 'D' || c.joker === 'big';
   PK.cardName = (c) => (c.joker ? (c.joker === 'big' ? '大鬼' : '小鬼') : PK.SUIT_NAME[c.s] + PK.RANK_TXT[c.r]);
 
@@ -159,7 +175,7 @@
     ghost.style.left = a.left + a.width / 2 - 28 + 'px'; ghost.style.top = a.top + a.height / 2 - 40 + 'px';
     document.body.append(ghost);
     const dx = b.left + b.width / 2 - (a.left + a.width / 2), dy = b.top + b.height / 2 - (a.top + a.height / 2);
-    ghost.animate([{ transform: 'translate(0,0) rotate(0) scale(.8)' }, { transform: `translate(${dx}px,${dy}px) rotate(${PK.rand(-20, 20)}deg) scale(1)` }], { duration: ms, easing: 'cubic-bezier(.2,.8,.3,1)' });
+    ghost.animate([{ transform: 'translate(0,0) rotate(0) scale(.8)' }, { transform: `translate(${dx}px,${dy}px) rotate(${PK.crand(-20, 20)}deg) scale(1)` }], { duration: ms, easing: 'cubic-bezier(.2,.8,.3,1)' });
     PK.sfx('deal');
     await PK.sleep(ms);
     ghost.remove();
@@ -186,7 +202,7 @@
     try {
       actx = actx || new (window.AudioContext || window.webkitAudioContext)();
       const b = actx.createBuffer(1, actx.sampleRate * dur, actx.sampleRate), d = b.getChannelData(0);
-      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+      for (let i = 0; i < d.length; i++) d[i] = (PK.nrand() * 2 - 1) * (1 - i / d.length);
       const s = actx.createBufferSource(), g = actx.createGain(); g.gain.value = vol || 0.2;
       s.buffer = b; s.connect(g); g.connect(actx.destination); s.start();
     } catch (e) {}

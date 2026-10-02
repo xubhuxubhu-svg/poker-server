@@ -40,7 +40,7 @@
 <li>製作者保留隨時修改遊戲內容、規則及本聲明的權利。</li></ol>
 <h4>十、版權</h4>
 <ol><li>本平台的程式、畫面設計與特效，皆為製作者 Eric Hu 原創製作。</li>
-<li>背景音樂將於後續補上，屆時會另外標示來源。</li></ol>
+<li>背景音樂使用以下免費授權音樂，版權屬原作者所有：${PK.MUSIC_CREDITS_HTML}</li></ol>
 </div>`;
   PK.showDisclaimer = () => PK.modal('📜 牌神擂台　遊戲製作聲明', PK.DISCLAIMER, null, { cls: 'wide' });
 
@@ -70,7 +70,7 @@
     const msg = el('div', { class: 'login-msg' });
     const go = async (reg) => {
       PK.sfx('click'); msg.textContent = '處理中…';
-      try { await PK.login(name.value, pw.value, reg); showLobby(); PK.toast('歡迎，' + PK.user.name + '！'); }
+      try { await PK.login(name.value, pw.value, reg); showLobby(); PK.toast('歡迎，' + PK.user.name + '！'); PK.voice.say('歡迎' + PK.user.name + '，來到牌神擂台！', { pri: 3 }); }
       catch (e) { msg.textContent = e.message; }
     };
     pw.addEventListener('keydown', (e) => e.key === 'Enter' && go(false));
@@ -99,14 +99,14 @@
       el('button', { class: 'btn ghost', onclick: showBoard }, '🏆 排行榜'),
       el('button', { class: 'btn ghost', onclick: showBadges }, '🎖️ 能力銘牌'),
       el('button', { class: 'btn ghost', onclick: PK.showDisclaimer }, '📜 製作聲明'),
-      el('button', { class: 'btn ghost', onclick: () => { PK.muted = !PK.muted; PK.store.set('pk_muted', PK.muted); PK.toast(PK.muted ? '音效已關閉' : '音效已開啟'); } }, '🔊 音效'),
+      el('button', { class: 'btn ghost', onclick: PK.showSound }, '🔊 聲音設定'),
       el('button', { class: 'btn ghost', onclick: async () => { if (await PK.confirm('登出', '確定要登出嗎？')) { PK.logout(); showLogin(); } } }, '🚪 登出'));
     const tabs = el('div', { class: 'tabs' }, PK.CATS.map((c) => el('button', { class: 'tab' + (c.id === curCat ? ' on' : ''), onclick: () => { curCat = c.id; showLobby(); } }, c.name)));
     const grid = el('div', { class: 'game-grid' }, PK.GAMES.filter((g) => g.cat === curCat).map(gameCard));
-    const challenge = el('div', { class: 'challenge-card', onclick: () => PK.modal('🏅 挑戰賽', '<p>挑戰賽會依照「菜鳥、入門、熟練、高手、精英、大師、宗師、牌神」八個等級，提供各式各樣的撲克牌玩法挑戰。</p><p>完成挑戰就能升級，並獲得對應顏色與特效的能力銘牌。</p><p class="muted">此功能將在後續階段開放。</p>') },
-      el('div', { class: 'cc-icon' }, '🏅'), el('div', null, el('div', { class: 'cc-title' }, '挑戰賽'), el('div', { class: 'cc-sub' }, '八個等級・能力銘牌（後續開放）')));
+    const challenge = el('div', { class: 'challenge-card', onclick: () => PK.ch.show() },
+      el('div', { class: 'cc-icon' }, '🏅'), el('div', null, el('div', { class: 'cc-title' }, '挑戰賽'), el('div', { class: 'cc-sub' }, '八個等級・完成挑戰拿能力銘牌・目前：' + PK.LEVELS[PK.user.level || 0].name)));
     app().replaceChildren(el('div', { class: 'lobby' }, head, tools, challenge, tabs, grid,
-      el('footer', { class: 'lobby-foot' }, '遊戲製作：Eric Hu　｜　僅供家人親友娛樂・禁止營利・籌碼為虛擬計分，嚴禁賭博')));
+      el('footer', { class: 'lobby-foot' }, '遊戲製作：Eric Hu　｜　僅供家人親友娛樂・禁止營利・籌碼為虛擬計分，嚴禁賭博', el('br'), '背景音樂來源：Pixabay、StockTune（詳見製作聲明）', el('br'), el('span', { 'data-nowplaying': '' }, PK.music.nowText()))));
   }
   PK.showLobby = showLobby;
 
@@ -118,7 +118,7 @@
       el('div', { class: 'gc-name', style: { color: th.text } }, g.name),
       el('div', { class: 'gc-style', style: { background: th.accent, color: '#111' } }, g.style),
       el('div', { class: 'gc-meta' }, g.players[0] === g.players[1] ? g.players[0] + ' 人' : g.players[0] + '～' + g.players[1] + ' 人', g.casino ? '・籌碼' : ''),
-      el('div', { class: 'gc-status ' + (g.ready ? 'ready' : 'dev') }, g.ready ? '可以玩' : '製作中'));
+      el('div', { class: 'gc-status ' + (PK.IMPL[g.id] ? 'ready' : 'dev') }, PK.IMPL[g.id] ? '可以玩' : '製作中'));
   }
 
   async function showBoard() {
@@ -158,7 +158,7 @@
       g.casino ? el('div', { class: 'casino-strip' }, '籌碼為虛擬計分，無現金價值，嚴禁賭博') : null,
       el('div', { class: 'setup-panel' },
         el('div', { class: 'setup-row' }, el('label', null, '對戰方式'),
-          el('div', { class: 'seg' }, el('button', { class: 'seg-b on' }, '🤖 電腦對戰'), el('button', { class: 'seg-b disabled', onclick: () => PK.toast('真人連線對戰（含文字聊天與即時語音）將在後續階段開放') }, '👥 真人連線'))),
+          el('div', { class: 'seg' }, el('button', { class: 'seg-b on' }, '🤖 電腦對戰'), el('button', { class: 'seg-b', onclick: () => { PK.store.set('pk_cfg_' + g.id, cfg); if (PK.OFFLINE) PK.modal('真人連線', '<p>單機試玩版不能連線。</p><p>請用上線後的網址（Render 網站）開啟，才能和家人真人對戰、聊天和語音。</p>'); else PK.showOnline(g, cfg); } }, '👥 真人連線'))),
         el('div', { class: 'setup-row' }, el('label', null, '遊戲模式'), seg('mode', [['classic', '經典模式'], ['party', '狂歡模式（技能＋特效）']])),
         maxAI > 0 ? el('div', { class: 'setup-row' }, el('label', null, '電腦對手'), seg('ai', aiOpts)) : null,
         el('div', { class: 'setup-row' }, el('label', null, '電腦難度'), seg('diff', [[0, '簡單'], [1, '普通'], [2, '困難']]))),
@@ -171,32 +171,55 @@
   PK.showSetup = showSetup;
 
   /* ---------- 牌桌共用框架 ---------- */
-  function startGame(g, cfg) {
+  /* online＝連線資料：{ players, mySeat, seed, net }；沒有就是單機對電腦 */
+  function startGame(g, cfg, online) {
     applyTheme(g);
-    const AI_NAMES = ['阿福', '小美', '老王', '阿珠', '大雄', '春嬌', '志明', '阿嬤', '小胖', '阿德'];
-    const AI_AV = ['🐵', '🐱', '🐶', '🐼', '🦊', '🐯', '🐸', '🐷'];
-    const names = PK.shuffle(AI_NAMES.slice()), avs = PK.shuffle(AI_AV.slice());
-    const players = [{ name: PK.user.name, isAI: false, avatar: PK.user.name.slice(0, 1), level: PK.user.level }];
-    for (let i = 0; i < cfg.ai; i++) players.push({ name: names[i], isAI: true, avatar: avs[i], level: PK.randInt(0, 3) });
+    let players, mySeat = 0;
+    if (online) {
+      players = online.players.map((x, i) => ({ name: x.name, isAI: !!x.ai, avatar: x.ai ? x.avatar : x.name.slice(0, 1), level: x.level || 0, seat: i, remote: !x.ai && i !== online.mySeat }));
+      mySeat = online.mySeat;
+    } else {
+      const AI_NAMES = ['阿福', '小美', '老王', '阿珠', '大雄', '春嬌', '志明', '阿嬤', '小胖', '阿德'];
+      const AI_AV = ['🐵', '🐱', '🐶', '🐼', '🦊', '🐯', '🐸', '🐷'];
+      const names = PK.shuffle(AI_NAMES.slice()), avs = PK.shuffle(AI_AV.slice());
+      players = [{ name: PK.user.name, isAI: false, avatar: PK.user.name.slice(0, 1), level: PK.user.level, seat: 0 }];
+      for (let i = 0; i < cfg.ai; i++) players.push({ name: names[i], isAI: true, avatar: avs[i], level: PK.randInt(0, 3), seat: i + 1 });
+    }
+    const me = players[mySeat];
+    const others = []; for (let i = 1; i < players.length; i++) others.push(players[(mySeat + i) % players.length]);
+    const net = online && online.net;
 
     const chatLog = el('div', { class: 'chat-log' });
     const chatIn = el('input', { placeholder: '輸入訊息…', maxlength: 60 });
-    const sendChat = () => { const t = chatIn.value.trim(); if (!t) return; chatIn.value = ''; table.say(players[0], t); setTimeout(() => { if (Math.random() < 0.6) { const ai = PK.pick(players.filter((p) => p.isAI)); ai && table.say(ai, PK.pick(['哈哈哈', '我也這麼覺得', '專心玩牌啦！', '你今天手氣不錯喔', '👍', '等一下看我的'])); } }, PK.randInt(700, 1800)); };
+    const sendChat = () => {
+      const tx = chatIn.value.trim(); if (!tx) return; chatIn.value = '';
+      table.say(me, tx);
+      if (net) { net.chat(tx); return; }
+      setTimeout(() => { if (PK.nrand() < 0.6) { const ai = PK.cpick(players.filter((p) => p.isAI)); ai && table.say(ai, PK.cpick(['哈哈哈', '我也這麼覺得', '專心玩牌啦！', '你今天手氣不錯喔', '👍', '等一下看我的'])); } }, PK.cint(700, 1800));
+    };
     chatIn.addEventListener('keydown', (e) => e.key === 'Enter' && sendChat());
     const quick = ['好牌！', '快一點啦', '嚇死我了', '再來一局', '哈哈哈', '😭'];
+    const voiceRow = el('div', { class: 'voice-row' });
+    if (net && PK.vc) PK.vc.mount(voiceRow); else voiceRow.append(el('button', { class: 'btn ghost small', onclick: () => PK.toast('即時語音要在「真人連線」房間裡才能使用') }, '🎤 語音（真人連線時可用）'));
     const chat = el('aside', { class: 'chat' },
       el('div', { class: 'chat-head' }, '💬 聊天', el('button', { class: 'chat-close', onclick: () => chat.classList.remove('open') }, '✕')),
       chatLog,
       el('div', { class: 'chat-quick' }, quick.map((q) => el('button', { onclick: () => { chatIn.value = q; sendChat(); } }, q))),
       el('div', { class: 'chat-in' }, chatIn, el('button', { class: 'btn primary', onclick: sendChat }, '送出')),
-      el('div', { class: 'voice-row' }, el('button', { class: 'btn ghost small', onclick: () => PK.toast('即時語音將在真人連線版開放') }, '🎤 語音（連線版開放）')));
+      voiceRow);
 
     const board = el('div', { class: 'table-area' });
+    const leave = async () => {
+      if (!(await PK.confirm('離開牌桌', online ? '確定要離開房間嗎？你的座位會改由電腦代打。' : '確定要回到上一層嗎？本局進度不會保留。'))) return;
+      table.destroy();
+      if (net) { net.leaveRoom(); PK.showOnline(g); } else showSetup(g);
+    };
     const topbar = el('div', { class: 'topbar' },
-      el('button', { class: 'btn ghost small', onclick: async () => { if (await PK.confirm('離開牌桌', '確定要回到上一層嗎？本局進度不會保留。')) { table.destroy(); showSetup(g); } } }, '← 返回'),
-      el('div', { class: 'tb-title' }, g.icon + ' ' + g.name, el('span', { class: 'tb-mode' }, cfg.mode === 'party' ? '狂歡模式' : '經典模式')),
+      el('button', { class: 'btn ghost small', onclick: leave }, '← 返回'),
+      el('div', { class: 'tb-title' }, g.icon + ' ' + g.name, el('span', { class: 'tb-mode' }, (online ? '連線・' : '') + (cfg.mode === 'party' ? '狂歡模式' : '經典模式'))),
       el('div', { class: 'tb-right' },
         el('span', { class: 'tb-chips' }, '🪙 ', el('span', { 'data-chips': '' }, PK.fmt(PK.user.chips))),
+        el('button', { class: 'btn ghost small', onclick: PK.showSound }, '🔊'),
         el('button', { class: 'btn ghost small', onclick: () => PK.showRules(g) }, '📖'),
         el('button', { class: 'btn ghost small chat-btn', onclick: () => { chat.classList.toggle('open'); chatBtnDot.classList.remove('on'); } }, '💬', el('span', { class: 'dot' })),
       ));
@@ -206,40 +229,48 @@
 
     let alive = true; const timers = new Set();
     const table = {
-      g, cfg, players, board, root, isParty: cfg.mode === 'party', diff: cfg.diff,
+      g, cfg, players, me, others, board, root, isParty: cfg.mode === 'party', diff: cfg.diff,
+      online: !!online, net, actor: null,
       get alive() { return alive; },
       say(p, text) {
-        const line = el('div', { class: 'chat-line' + (p.isAI ? '' : ' me') }, el('b', null, p.name), '：', text);
+        const line = el('div', { class: 'chat-line' + (p === me ? ' me' : '') }, el('b', null, p.name), '：', text);
         chatLog.append(line); chatLog.scrollTop = chatLog.scrollHeight;
+        if (p !== me) PK.voice.chat(p, text);
         if (!chat.classList.contains('open')) chatBtnDot.classList.add('on');
         const seat = p.seatEl && PK.$('.bubble-anchor', p.seatEl);
         if (seat) { const b = el('div', { class: 'bubble' }, text); seat.replaceChildren(b); setTimeout(() => b.remove(), 2600); }
       },
       sys(text) { chatLog.append(el('div', { class: 'chat-line sys' }, text)); chatLog.scrollTop = chatLog.scrollHeight; },
-      wait(ms) { return new Promise((r, j) => { const t = setTimeout(() => { timers.delete(t); alive ? r() : j(new Error('closed')); }, ms); timers.add(t); }); },
-      destroy() { alive = false; timers.forEach(clearTimeout); },
+      wait(ms) { return new Promise((r, j) => { const tm = setTimeout(() => { timers.delete(tm); alive ? r() : j(new Error('closed')); }, ms); timers.add(tm); }); },
+      destroy() { alive = false; timers.forEach(clearTimeout); PK.voice.stop(); PK.unseed(); if (net) net.detach(table); },
       /* 座位：頭像＋名字＋銘牌，點擊可以丟表情 */
       seat(p, extra) {
-        const s = el('div', { class: 'seat' + (p.isAI ? '' : ' me') },
+        const s = el('div', { class: 'seat' + (p === me ? ' me' : p.isAI ? '' : ' human') },
           el('div', { class: 'bubble-anchor' }),
           el('div', { class: 'seat-av' }, p.avatar),
           el('div', { class: 'seat-name' }, p.name), PK.badge(p.level), extra || null);
         p.seatEl = s;
-        if (p.isAI) s.addEventListener('click', () => table.emojiPicker(p));
+        if (p !== me) s.addEventListener('click', () => table.emojiPicker(p));
         return s;
       },
       emojiPicker(target) {
-        const me = players[0];
         const em = ['🍅', '❤️', '💣', '👍', '🌹', '🥚', '🍺'];
-        const box = el('div', { class: 'emoji-pick' }, em.map((e) => el('button', { onclick: () => { wrap.remove(); PK.fx.throwEmoji(me.seatEl, target.seatEl, e); setTimeout(() => { if (Math.random() < 0.5) { PK.fx.throwEmoji(target.seatEl, me.seatEl, PK.pick(em)); table.say(target, PK.pick(['丟我？還你！', '哼！', '謝啦～', '😤'])); } }, 1200); } }, e)));
+        const box = el('div', { class: 'emoji-pick' }, em.map((e) => el('button', { onclick: () => {
+          wrap.remove(); PK.fx.throwEmoji(me.seatEl, target.seatEl, e);
+          if (net) { net.emoji(me.seat, target.seat, e); return; }
+          setTimeout(() => { if (target.isAI && PK.nrand() < 0.5) { PK.fx.throwEmoji(target.seatEl, me.seatEl, PK.cpick(em)); table.say(target, PK.cpick(['丟我？還你！', '哼！', '謝啦～', '😤'])); } }, 1200);
+        } }, e)));
         const wrap = el('div', { class: 'emoji-wrap', onclick: (e) => e.target === wrap && wrap.remove() }, el('div', { class: 'emoji-title' }, '丟表情給 ' + target.name), box);
         document.body.append(wrap);
       },
     };
-    table.sys('歡迎來到 ' + g.name + '！點擊對手的頭像可以丟表情。');
+    table.sys('歡迎來到 ' + g.name + '！點擊其他人的頭像可以丟表情。');
+    if (online) { table.sys('連線對戰：' + players.filter((p) => !p.isAI).map((p) => p.name).join('、') + (players.some((p) => p.isAI) ? '，其他座位由電腦代打' : '')); net.attach(table); PK.useSeed(online.seed); }
+    PK.voice.say(g.name + '，開始！', { pri: 3 });
     PK.current = table;
-    PK.IMPL[g.id].start(table).catch((e) => { if (e.message !== 'closed') { console.error(e); PK.toast('發生錯誤：' + e.message); } });
+    PK.IMPL[g.id].start(table).catch((e) => { if (e.message !== 'closed') { console.error(e); PK.toast('發生錯誤：' + e.message); } }).finally(() => { if (PK.current === table) PK.unseed(); });
   }
+  PK.startGame = startGame;
 
   window.addEventListener('DOMContentLoaded', boot);
 })();
