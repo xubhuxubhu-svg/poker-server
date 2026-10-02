@@ -1,0 +1,9 @@
+{
+  "name": "poker-server",
+  "version": "0.1.0",
+  "description": "牌神擂台 — 撲克牌遊戲平台（遊戲製作：Eric Hu）",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "express": "^4.19.2", "pg": "^8.11.5" }
+}
