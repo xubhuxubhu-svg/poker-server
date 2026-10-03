@@ -38,12 +38,13 @@
         return row;
       }));
       const show = (p) => {
-        if (p === me) { kit.render(me, true, { sort: kit.bySuitRank, onClick: (c) => me.pick && me.pick(c), mark: (c) => me.pick && (me.coverMode || ok(c)), markCls: me.coverMode ? 'cover-pick' : 'playable' }); }
+        if (p === me) { kit.render(me, true, { sort: kit.bySuitRank, onClick: (c) => me.pick && me.pick(c), mark: (c) => me.pick && (me.coverMode || ok(c)), markCls: me.coverMode ? 'cover-pick' : 'sv-hint' }); }
         else p.handEl.replaceChildren(...p.cards.slice(0, 7).map(() => PK.cardEl(null, false, { small: true })));
         p.ptsEl.textContent = p.cards.length + ' 張';
         kit.setTag(p, p.covered.length ? '蓋 ' + p.covered.length + ' 張' : '', 'stand');
       };
       const play = async (p, c) => {
+        if (!c) return;
         p.cards.splice(p.cards.indexOf(c), 1); show(p);
         await PK.flyCard(p.handEl, boardEl, null, 260);
         if (c.r === 7) { lines[c.s] = { lo: 7, hi: 7 }; PK.fx.burst(boardEl, ['🌸', '🌸', '✨'], 14); }
@@ -53,8 +54,9 @@
         if (l.lo === 1 && l.hi === 13) { PK.fx.fireworks(3); PK.fx.banner(PK.SUIT_NAME[c.s] + '完成！', 'gold'); }
       };
       const cover = async (p, c) => {
+        if (!c) return;
         p.cards.splice(p.cards.indexOf(c), 1); p.covered.push(c);
-        PK.sfx('splat'); PK.fx.burst(p.seatEl, ['🖌️', '⚫', '💧'], 10); PK.voice.say(p === me ? '蓋牌，' + PK.cardSpeech(c) : '蓋牌', { pri: 2 });
+        PK.sfx('splat'); PK.fx.burst(p.seatEl, ['🖌️', '⚫', '💧'], 10); PK.voice.say('蓋牌', { pri: 2 });
         if (p !== me) kit.say(t, p, 'bad', 0.3);
         show(p);
       };
@@ -70,6 +72,7 @@
         }
         if (k === 'ink') { if (!p.covered.length) { p.sk.ink++; if (p === me) PK.toast('還沒有蓋牌'); return; } const mx = Math.max(...p.covered.map((c) => c.r)); p.inkCut = (p.inkCut || 0) + Math.floor(mx / 2); PK.fx.burst(p.seatEl, ['🖌️', '✨'], 10); }
         if (k === 'push') {
+          if (!p.cards.length) { p.sk.push++; if (p === me) S.render(S.enabled); return; }
           const nx = ps[(ps.indexOf(p) + 1) % n];
           let c;
           if (!p.isAI) { const r = await kit.ask(t, { who: p, ctrl: L.ctrl, title: '🎎 點一張要塞給 ' + nx.name + ' 的牌', secs: 20, timer: L.timer, bind: (pick) => { me.coverMode = true; me.pick = pick; show(me); }, cleanup: () => { me.coverMode = false; me.pick = null; show(me); } }); c = r.type === 'pick' ? r.value : p.cards[0]; }
@@ -123,7 +126,7 @@
                 title: playable.length ? '點一張發亮的牌接上去' : '沒有牌可以接，點一張牌蓋起來（點數會算進分數）',
                 bind: (pick) => { me.pick = pick; show(me); }, cleanup: () => { me.pick = null; show(me); } });
               if (r.type === 'closed') return;
-              if (r.type === 'skill') { await useSkill(me, r.key); if (r.key === 'shield') break; continue; }
+              if (r.type === 'skill') { await useSkill(me, r.key); if (r.key === 'shield' || !me.cards.length) break; continue; }
               let c = r.value;
               if (r.type === 'timeout') c = playable[0] || me.cards.slice().sort((a, b) => a.r - b.r)[0];
               if (playable.length && !ok(c)) { if (me === t.me) PK.toast('這張不能接'); continue; }
@@ -134,9 +137,10 @@
             })(p);
           } else {
             await t.wait(PK.randInt(500, 850));
-            const playable = p.cards.filter(ok);
             if (t.isParty && Math.random() < 0.12) { const k = PK.pick(Object.keys(SKILLS)); if (p.sk[k] && k !== 'shield' && (k !== 'seal' || Object.keys(lines).length)) await useSkill(p, k); }
-            if (playable.length) await play(p, aiPick(p, playable));
+            const playable2 = p.cards.filter(ok);
+            if (!p.cards.length) { /* 送完了 */ }
+            else if (playable2.length) await play(p, aiPick(p, playable2));
             else if (t.isParty && p.sk.shield && Math.random() < 0.5) await useSkill(p, 'shield');
             else await cover(p, p.cards.slice().sort((a, b) => a.r - b.r)[0]);
           }

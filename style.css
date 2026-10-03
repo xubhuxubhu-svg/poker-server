@@ -613,3 +613,93 @@ body.lobby-body{background:radial-gradient(circle at 50% -10%,#2a1850,#0b0c1a 60
 .cp-wrap .pl-box{max-width:100%;overflow:hidden}
 @media (max-width:760px){.cp-wrap .cp-n .hand .card+.card{margin-left:-20px}.cp-wrap .cp-w .hand .card+.card,.cp-wrap .cp-e .hand .card+.card{margin-left:0}}
 .ol-code::placeholder{letter-spacing:0;font-size:14px}
+
+/* 排七：建議出牌用黃框、手牌縮小 */
+.card.sv-hint{box-shadow:0 0 0 4px #ffd400,0 0 14px #ffd400;outline:3px solid #ffd400;outline-offset:1px;transform:translateY(-8px);cursor:pointer}
+.sv .me-box .hand .card{--card-w:52px;--card-h:74px}
+.sv .me-box .hand .card+.card{margin-left:-14px}
+.sv .sv-row{min-height:46px;padding:3px 8px}
+@media (max-width:760px){
+  .sv .me-box .hand{flex-wrap:nowrap}
+  .sv .me-box .hand .card{--card-w:40px;--card-h:58px}
+  .sv .me-box .hand .card .c-mid{font-size:17px}
+  .sv .me-box .hand .card+.card{margin-left:-14px}
+  .sv .sv-cards .card{--card-w:32px;--card-h:46px}
+  .sv .sv-slot{width:32px;height:46px}
+  .sv .sv-row{min-height:40px;padding:2px 6px}
+  .sv .sv-suit{font-size:20px;width:24px}
+  .sv .th-others .hand .card{--card-w:24px;--card-h:34px}
+}
+
+/* 心臟病：拍桌按鈕 2 倍、喊與出牌 3 倍 */
+.sl-mid{gap:22px}
+.sl-hand{width:220px;height:220px;font-size:92px;border-width:7px}
+.sl-hand span{font-size:34px}
+.sl-callbox{padding:8px 28px}
+.sl-call-t{font-size:30px}
+.sl-call{font-size:160px;-webkit-text-stroke:4px #111}
+.sl-stack{width:200px;height:280px}
+.sl-center{width:180px;height:252px}
+.sl-center .card{--card-w:180px;--card-h:252px;border-radius:14px}
+.sl-center .card .c-corner{left:10px;top:6px}
+@media (max-width:760px){
+  .sl-mid{gap:10px}
+  .sl-hand{width:170px;height:170px;font-size:72px}
+  .sl-hand span{font-size:26px}
+  .sl-callbox{padding:4px 16px}
+  .sl-call-t{font-size:20px}
+  .sl-call{font-size:110px;-webkit-text-stroke:3px #111}
+  .sl-stack{width:140px;height:196px}
+  .sl-center{width:126px;height:176px}
+  .sl-center .card{--card-w:126px;--card-h:176px}
+}
+
+/* 抽鬼牌：要抽的牌放大顯示在中間 */
+.om-zone{display:none;flex-direction:column;align-items:center;gap:6px;margin-top:8px;padding:8px 10px;border-radius:14px;background:rgba(0,0,0,.35);border:2px dashed rgba(255,255,255,.35);max-width:100%}
+.om-zone.on{display:flex}
+.om-zone-t{font-weight:900;font-size:16px}
+.om-zone-cards{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.om-zone-cards .card{--card-w:64px;--card-h:90px}
+.om-zone-cards .card.pickable{cursor:pointer;transition:transform .12s}
+.om-zone-cards .card.pickable:hover{transform:translateY(-8px)}
+.card.om-dim{opacity:.45}
+@media (max-width:760px){
+  .om-zone-cards{gap:5px}
+  .om-zone-cards .card{--card-w:46px;--card-h:66px}
+}
+
+/* 技能商店 */
+.shop-btn{background:linear-gradient(90deg,#ffb703,#fb8500)!important;color:#111!important;font-weight:900}
+.shop-hero{text-align:center;margin:6px 0 14px}
+.shop-hero h2{margin:4px 0 10px;font-size:30px}
+.shop-wallet{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;font-size:18px}
+.shop-wallet span{background:rgba(255,255,255,.08);padding:8px 16px;border-radius:999px}
+.shop-wallet b{color:var(--accent);margin-left:4px}
+.shop-how{background:rgba(255,255,255,.06);border-radius:14px;padding:10px 18px;margin-bottom:16px;line-height:1.7}
+.shop-how h3{margin:4px 0}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px}
+.shop-item{background:linear-gradient(160deg,#2a2f5a,#1a1d36);border:2px solid rgba(255,209,102,.4);border-radius:16px;padding:16px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center}
+.shop-ic{font-size:34px;min-height:44px}
+.shop-name{font-size:18px;font-weight:900}
+.shop-note{font-size:13px;color:#8affc1;font-weight:800}
+.shop-item .btn{margin-top:auto;width:100%}
+.shop-foot{text-align:center;margin-top:18px;font-size:13px}
+.shop-buy{text-align:center}
+.shop-buy-sk{font-size:28px;font-weight:900;margin:4px 0}
+.skill.buy{opacity:.95;border-style:dashed!important;filter:saturate(.6)}
+.skill.buy .sk-c{color:#ffb703;font-size:11px}
+.modal-btns .btn[disabled]{opacity:.4;cursor:not-allowed}
+@media (max-width:760px){
+  .sv .th-others{flex-wrap:nowrap;gap:4px}
+  .sv .th-others .pl-box{flex:1 1 0;max-width:none;flex-direction:column;align-items:center;padding:3px 2px;gap:2px}
+  .sv .th-others .seat-av{width:30px;height:30px;font-size:18px}
+  .sv .th-others .pl-cards{align-items:center}
+  .sv .th-others .hand{min-height:30px}
+  .sv .th-others .hand .card{--card-w:20px;--card-h:28px}
+  .sv .th-others .hand .card+.card{margin-left:-12px}
+  .sv .me-box .pl-cards{min-width:0;flex:1}
+  .sv .me-box .hand{flex-wrap:wrap;row-gap:6px;min-width:0;min-height:60px}
+  .sv .round-info{font-size:15px;margin:0}
+}
+.om .th-mid{flex-direction:column;align-items:center}
+.om .om-zone{width:100%;max-width:640px}

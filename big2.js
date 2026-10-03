@@ -207,7 +207,7 @@
         winner.pts = sum;
         ps.forEach((p) => PK.fx.floatText(p.seatEl, (p.pts > 0 ? '+' : '') + p.pts + ' 分', p.pts > 0 ? '#7dff9a' : '#ff7b7b'));
         await t.wait(1200);
-        await kit.settle(t, me.pts * 5, { big: winner === me, title: winner === me ? '你贏了！' : '扣 ' + -me.pts + ' 分' });
+        await kit.settle(t, me.pts * 15, { big: winner === me, title: winner === me ? '你贏了！' : '扣 ' + -me.pts + ' 分' });
         const order = ps.slice().sort((a, b) => b.pts - a.pts);
         await PK.modal('本局結果', kit.ranking(t, order, (p) => (p.pts > 0 ? '+' : '') + p.pts + ' 分・剩 ' + p.cards.length + ' 張'), [{ text: '好', value: 1, cls: 'primary' }]);
         await kit.next(t, L.ctrl, '再來一局');

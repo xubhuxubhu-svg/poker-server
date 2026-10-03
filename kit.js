@@ -53,9 +53,15 @@
       S.enabled = enabled; if (handler !== undefined) S.handler = handler;
       const me = t.me;
       bar.replaceChildren(...Object.keys(defs).map((k) => el('button', {
-        class: 'skill', title: defs[k][2], disabled: !enabled || !me.sk[k] || null,
-        onclick: () => { if (S.handler) S.handler(k); },
-      }, el('span', { class: 'sk-i' }, defs[k][0]), el('span', { class: 'sk-n' }, defs[k][1]), el('span', { class: 'sk-c' }, '×' + me.sk[k]))));
+        class: 'skill' + (me.sk[k] ? '' : ' buy'), title: defs[k][2] + (me.sk[k] ? '' : '（次數用完，點一下可加購）'), disabled: !enabled || null,
+        onclick: async () => {
+          if (!S.handler) return;
+          if (me.sk[k]) return S.handler(k);
+          if (S._buying) return; S._buying = true;
+          const h = S.handler;
+          try { if (await PK.buySkill(defs[k][0], defs[k][1])) { if (S.handler === h && S.enabled) h(k, true); else PK.refundSkill(); } } finally { S._buying = false; }
+        },
+      }, el('span', { class: 'sk-i' }, defs[k][0]), el('span', { class: 'sk-n' }, defs[k][1]), el('span', { class: 'sk-c' }, me.sk[k] ? '×' + me.sk[k] : '🛒 加購'))));
     };
     /* 扣次數＋特效＋公告 */
     S.spend = (p, k) => {
@@ -80,12 +86,14 @@
       if (o.ctrl) kit.showWait(t, o.ctrl);
       if (o.skills && !o.keepSkills && !o.ctrl) o.skills.render(false, null);
       const r = await t.net.next(who.seat);
+      if (r && r.type === 'skill' && r.buy) who.sk[r.key] = (who.sk[r.key] || 0) + 1;
       if (window.PK_DEBUG) console.error('EVH ' + (t._dbg = (t._dbg || 0) + 1) + ' ' + who.seat + ' ' + t.net.stateHash(t));
       t._wait.delete(who);
       if (o.ctrl) kit.showWait(t, o.ctrl);
       return r;
     }
     const r = await askLocal(t, o);
+    if (r.type === 'skill' && r.buy) { const bp = who || t.me; bp.sk[r.key] = (bp.sk[r.key] || 0) + 1; }
     if (window.PK_DEBUG && t.online && who && !who.isAI) console.error('EVH ' + (t._dbg = (t._dbg || 0) + 1) + ' ' + who.seat + ' ' + t.net.stateHash(t));
     if (t.online && who && !who.isAI && r.type !== 'closed') t.net.send(who.seat, r);
     return r;
@@ -115,7 +123,7 @@
       if (o.ctrl) o.ctrl._busy = true;
       if (o.ctrl) o.ctrl.replaceChildren(...(o.title ? [el('div', { class: 'bet-title' }, o.title)] : []),
         ...(o.buttons || []).map((b) => b.nodeType ? b : el('button', { class: 'btn ' + (b.cls || ''), disabled: b.disabled || null, onclick: () => { PK.sfx('click'); finish({ type: 'btn', value: b.value }); } }, b.text)));
-      if (o.skills) o.skills.render(true, (k) => finish({ type: 'skill', key: k }));
+      if (o.skills) o.skills.render(true, (k, buy) => finish(buy ? { type: 'skill', key: k, buy: 1 } : { type: 'skill', key: k }));
       if (o.bind) o.bind((v) => finish({ type: 'pick', value: v }));
       if (o.timer && o.secs) o.timer.classList.add('on');
       const iv = setInterval(() => {

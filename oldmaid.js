@@ -8,26 +8,40 @@
     skills: SKILLS,
     async start(t) {
       const ps = t.players, me = t.me, n = ps.length;
-      let done, pairs, eyeOn;
+      let done, pairs, eyeOn, zoneOwner = null;
+      const zone = el('div', { class: 'om-zone' });
       const pileEl = el('div', { class: 'om-pile' }, '🗑️ 已配對 ', el('b', null, '0'), ' 對');
       const info = el('div', { class: 'round-info' });
       const L = kit.layout(t, {
         cls: 'om',
         others: t.others.map((p) => kit.box(t, p)),
-        mid: [el('div', { class: 'mid-info' }, info, pileEl)],
+        mid: [el('div', { class: 'mid-info' }, info, pileEl), zone],
         me: kit.box(t, me, { big: true, cls: 'me-box' }),
       });
       const S = kit.skills(t, SKILLS, ps, L.skillbar);
       const show = (p, opt) => {
         opt = opt || {};
         if (p === me) kit.render(me, true, { sort: kit.byRank });
-        else p.handEl.replaceChildren(...p.cards.map((c, i) => {
-          const up = opt.reveal === i;
-          const e = PK.cardEl(c, up, { small: true });
-          if (eyeOn && isJ(c)) e.classList.add('ghost-glow');
-          if (opt.pick) { e.classList.add('pickable'); e.addEventListener('click', () => opt.pick(i)); }
-          return e;
-        }));
+        else {
+          const big = !!opt.pick || opt.reveal != null;
+          p.handEl.replaceChildren(...p.cards.map((c, i) => {
+            const e = PK.cardEl(c, false, { small: true });
+            if (eyeOn && isJ(c)) e.classList.add('ghost-glow');
+            if (big) e.classList.add('om-dim');
+            return e;
+          }));
+          if (big) {
+            zoneOwner = p;
+            zone.replaceChildren(el('div', { class: 'om-zone-t' }, opt.pick ? '👇 點一張 ' + p.name + ' 的牌' : '🔍 ' + p.name + ' 的牌'),
+              el('div', { class: 'om-zone-cards' }, p.cards.map((c, i) => {
+                const e = PK.cardEl(c, opt.reveal === i);
+                if (eyeOn && isJ(c)) e.classList.add('ghost-glow');
+                if (opt.pick) { e.classList.add('pickable'); e.addEventListener('click', () => opt.pick(i)); }
+                return e;
+              })));
+            zone.classList.add('on');
+          } else if (zoneOwner === p) { zoneOwner = null; zone.replaceChildren(); zone.classList.remove('on'); }
+        }
         p.ptsEl.textContent = p.cards.length ? p.cards.length + ' 張' : '';
       };
       const removePairs = (p) => {
@@ -69,7 +83,7 @@
         if (!S.spend(me, k)) return;
         const local = me === t.me;
         if (k === 'eye' && !local) return;
-        if (k === 'eye') { eyeOn = true; const h = ps.find((p) => p.cards.some(isJ)); PK.fx.peek(h.seatEl); t.sys(h === me ? '鬼牌在你自己手上！' : '鬼牌在 ' + h.name + ' 手上'); PK.fx.banner('鬼牌在 ' + (h === me ? '你手上' : h.name + ' 那裡'), 'event'); show(from); }
+        if (k === 'eye') { eyeOn = 3 * active().length; t.sys('👀 幽靈之眼持續 3 輪'); const h = ps.find((p) => p.cards.some(isJ)); PK.fx.peek(h.seatEl); t.sys(h === me ? '鬼牌在你自己手上！' : '鬼牌在 ' + h.name + ' 手上'); PK.fx.banner('鬼牌在 ' + (h === me ? '你手上' : h.name + ' 那裡'), 'event'); show(from); }
         if (k === 'candle') { me.candle = true; PK.fx.burst(me.seatEl, '🕯️', 8, { g: 0, speed: 3 }); }
         if (k === 'bat') {
           const j = me.cards.find(isJ);
@@ -105,6 +119,7 @@
           const from = nextOf(cur);
           if (from === cur) break;
           kit.active(ps, cur);
+          if (eyeOn) { eyeOn--; if (!eyeOn) { ps.forEach((q) => q !== me && show(q)); t.sys('👀 幽靈之眼的效果結束了'); } }
           info.textContent = cur === me ? '從 ' + from.name + ' 手中抽一張牌' : cur.name + ' 正在抽 ' + (from === me ? '你' : from.name) + ' 的牌';
           if (!cur.isAI) {
             t.actor = cur;

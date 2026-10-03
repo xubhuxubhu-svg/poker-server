@@ -29,13 +29,15 @@
       };
       const showPile = () => { centerEl.replaceChildren(...pile.slice(-3).map((c, i, a) => { const e = PK.cardEl(c, true); e.style.transform = `rotate(${(c.r * 37 % 30) - 15}deg)`; if (i === a.length - 1) e.classList.add('pop-in'); return e; })); pileCnt.textContent = pile.length ? pile.length + ' 張' : ''; };
       /* 技能隨時可以按，會在下一次翻牌時一起生效（連線時大家同步） */
-      const onSkill = (k) => {
+      const onSkill = (k, buy) => {
+        if (buy) { pendingSk.push('+' + k); PK.sfx('click'); PK.fx.floatText(me.seatEl, SKILLS[k][0] + ' 準備發動', '#ffe680'); return; }
         const used = pendingSk.filter((x) => x === k).length;
         if (me.sk[k] - used <= 0) return;
         pendingSk.push(k); PK.sfx('click'); PK.fx.floatText(me.seatEl, SKILLS[k][0] + ' 準備發動', '#ffe680');
       };
       const applySkills = (h, list) => {
-        for (const k of list || []) {
+        for (let k of list || []) {
+          if (k[0] === '+') { k = k.slice(1); h.sk[k] = (h.sk[k] || 0) + 1; }
           if (!S.spend(h, k)) continue;
           if (k === 'slow') { G.slow = 6; PK.fx.burst(centerEl, '🐢', 10); }
           if (k === 'iron') { h.iron = true; PK.fx.burst(h.seatEl, '🛡️', 8, { g: 0, speed: 3 }); }

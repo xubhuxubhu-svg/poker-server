@@ -106,8 +106,9 @@
       let resolveEnd = null;
 
       /* ---------- 技能 ---------- */
-      const onSkill = (k) => {
+      const onSkill = (k, buy) => {
         if (ended || busy) return;
+        if (buy) me.sk[k] = (me.sk[k] || 0) + 1;
         if (k === 'undo' && !hist.length) { PK.toast('沒有可以收回的步驟'); return; }
         if (!S.spend(me, k)) return;
         if (k === 'hint') { hintSel = findHint(); if (!hintSel) PK.toast('沒有可以走的步了，試試其他技能'); else if (hintSel === 'stock') PK.toast('翻牌堆看看'); render(); PK.fx.burst(boardEl, '🐝', 6, { g: 0, speed: 3 }); }

@@ -239,7 +239,7 @@
       const body = PK.el('div', { class: 'modal-body' });
       if (typeof content === 'string') body.innerHTML = content; else if (content) body.append(content);
       const btns = PK.el('div', { class: 'modal-btns' },
-        (buttons || [{ text: '關閉', value: true }]).map((b) => PK.el('button', { class: 'btn ' + (b.cls || ''), onclick: () => { PK.sfx('click'); close(b.value); } }, b.text)));
+        (buttons || [{ text: '關閉', value: true }]).map((b) => PK.el('button', { class: 'btn ' + (b.cls || ''), disabled: b.disabled || null, onclick: () => { PK.sfx('click'); close(b.value); } }, b.text)));
       const box = PK.el('div', { class: 'modal ' + (opts.cls || '') },
         PK.el('div', { class: 'modal-title' }, title, opts.noX ? null : PK.el('button', { class: 'modal-x', onclick: () => close(null), 'aria-label': '關閉' }, '✕')),
         body, btns);

@@ -18,6 +18,7 @@
 - trick.js：四方牌桌（大老二、傷心小棧、黑桃王、橋牌共用）
 - net.js：真人連線（房間、同步、文字聊天、即時語音）
 - challenge.js：挑戰賽與能力銘牌
+- shop.js：技能商店（技能券、遊戲中加購技能）
 - bgm1.mp3～bgm6.mp3：背景音樂（來源：Pixabay、StockTune）
 - server.js、package.json：伺服器
 

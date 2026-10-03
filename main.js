@@ -18,6 +18,7 @@
 <ol><li>遊戲中的籌碼與金幣<b>全部都是虛擬計分工具</b>，只用來記錄遊戲勝負和排行榜名次。</li>
 <li>虛擬籌碼與金幣<b>沒有任何現金價值</b>：<b>不能</b>用現金、點數卡或任何方式購買或儲值；<b>不能</b>兌換成現金、商品、禮券或任何有價物品；<b>不能</b>在玩家之間買賣、轉讓或贈送。</li>
 <li>籌碼用完時，系統會<b>免費自動補發</b>。</li>
+<li>「技能商店」的技能券只能用虛擬金幣換取，同樣<b>沒有任何現金價值</b>，不能用真錢購買，也不能轉讓或兌換。</li>
 <li><b>嚴禁將本平台用於任何形式的賭博</b>，包括私下約定以遊戲結果支付金錢或財物。</li>
 <li>任何人如果違反上述規定，所產生的一切法律責任由行為人自行負責，與本平台及製作者無關。</li></ol>
 <h4>四、遊戲規則說明</h4>
@@ -96,6 +97,7 @@
         el('div', { class: 'me-info' }, el('div', { class: 'me-name' }, u.name, ' ', PK.badge(u.level)),
           el('div', { class: 'me-chips' }, '🪙 ', el('span', { 'data-chips': '' }, PK.fmt(u.chips)), el('span', { class: 'muted' }, '（虛擬計分）')))));
     const tools = el('div', { class: 'lobby-tools' },
+      el('button', { class: 'btn ghost shop-btn', onclick: PK.showShop }, '🛒 技能商店'),
       el('button', { class: 'btn ghost', onclick: showBoard }, '🏆 排行榜'),
       el('button', { class: 'btn ghost', onclick: showBadges }, '🎖️ 能力銘牌'),
       el('button', { class: 'btn ghost', onclick: PK.showDisclaimer }, '📜 製作聲明'),
